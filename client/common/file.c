@@ -586,7 +586,7 @@ BOOL freerdp_client_write_rdp_file(rdpFile* file, char* name, BOOL unicode)
 #define WRITE_RDP_FILE_VALUE(_format, _field) \
 if (~__rdpFile->_field) \
 	{ \
-		__count = _snprintf(__buffer == NULL ? NULL : __buffer + __current, __buffer == NULL ? 0 : __size - __required_size, _format, __rdpFile->_field); \
+		__count = snprintf(__buffer == NULL ? NULL : __buffer + __current, __buffer == NULL ? 0 : __size - __required_size, _format, __rdpFile->_field); \
 		__required_size += __count; \
 		__current += __count; \
 	}
@@ -594,7 +594,7 @@ if (~__rdpFile->_field) \
 #define WRITE_RDP_FILE_VALUE_STRING(_format, _field) \
 	if (~((size_t) __rdpFile->_field) && __rdpFile->_field != NULL) \
 	{ \
-		__count = _snprintf(__buffer == NULL ? NULL : __buffer + __current, __buffer == NULL ? 0 : __size - __required_size, _format, __rdpFile->_field); \
+		__count = snprintf(__buffer == NULL ? NULL : __buffer + __current, __buffer == NULL ? 0 : __size - __required_size, _format, __rdpFile->_field); \
 		__required_size += __count; \
 		__current += __count; \
 	}
