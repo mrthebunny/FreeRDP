@@ -17,6 +17,8 @@
  * limitations under the License.
  */
 
+#ifdef HAVE_RAIL
+
 #import "MRDPRailWindow.h"
 
 @implementation MRDPRailWindow
@@ -27,3 +29,6 @@
 }
 
 @end
+
+
+#endif

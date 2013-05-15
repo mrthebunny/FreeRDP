@@ -17,6 +17,9 @@
  * limitations under the License.
  */
 
+#ifdef HAVE_RAIL
+
+
 #include "MRDPRailView.h"
 
 #define USE_RAIL_CVT
@@ -928,3 +931,4 @@ void mac_rail_send_activate(int window_id)
 
 @end
 
+#endif

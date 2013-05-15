@@ -43,6 +43,7 @@ if(APPLE)
 		endif()
 	else()
 		add_subdirectory(Mac)
+                add_subdirectory(Mac/MacFreeRDP-library)
 	endif()
 endif()
 
