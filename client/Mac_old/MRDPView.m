@@ -51,6 +51,7 @@
 
 #include <freerdp/constants.h>
 
+#import "MRDPWindow.h"
 #import "freerdp/freerdp.h"
 #import "freerdp/types.h"
 #import "freerdp/channels/channels.h"
@@ -64,9 +65,6 @@
 #import "freerdp/rail.h"
 #import "freerdp/utils/rail.h"
 
-#ifdef HAVE_RAIL
-#import "MRDPWindow.h"
-#endif
 
 // RAIL_TODO DELETE WHEN DONE TESTING
 #define MRDP_DRAW_INDIVIDUAL_RECTS
@@ -251,10 +249,10 @@ const char* error_code_names[] =
 #ifdef HAVE_RAIL
 	firstCreateWindow = TRUE;
 	skipResizeOnce = YES;
-	windows = [[NSMutableArray alloc] initWithCapacity:10];
-
 #endif
     
+	windows = [[NSMutableArray alloc] initWithCapacity:10];
+
 	// setup a mouse tracking area
 	NSTrackingArea * trackingArea = [[NSTrackingArea alloc] initWithRect:[self visibleRect] options:NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved | NSTrackingCursorUpdate | NSTrackingEnabledDuringMouseDrag | NSTrackingActiveWhenFirstResponder owner:self userInfo:nil];
 	
@@ -681,14 +679,12 @@ const char* error_code_names[] =
 			free(argv[i]);
 	}
 	
-#ifdef HAVE_RAIL
 	for (MRDPWindow * w in windows)
 	{
 		[w setWindow:nil];
 		[w setView:nil];
 	}
-#endif
-    
+	
 	if (!is_connected)
 		return;
 	

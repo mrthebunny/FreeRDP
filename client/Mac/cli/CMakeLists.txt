@@ -1,28 +1,16 @@
-
 project(MacFreeRDP-client)
 
 set(MODULE_NAME "MacFreeRDP-client")
 set(MODULE_PREFIX "FREERDP_CLIENT_MAC_CLIENT")
-
-#  set(FRAMEWORK_HEADERS_PATH /System/Library/Frameworks/Cocoa.framework/Versions/A/Headers/)
-#  include_directories(${FRAMEWORK_HEADERS_PATH} /System/Library/Frameworks) 
-	
-# set(CMAKE_OSX_SYSROOT MacOSX10.7.sdk)
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -mmacosx-version-min=10.4")
-set(GUI_TYPE MACOSX_BUNDLE)
-
-# message(STATUS "Looking for lib here: " ${CMAKE_CURRENT_BINARY_DIR}/MacFreeRDP-library.framework/MacFreeRDP-library)
 
 # Import libraries
 find_library(FOUNDATION_LIBRARY Foundation)
 find_library(COCOA_LIBRARY Cocoa)
 find_library(APPKIT_LIBRARY AppKit)
-#   find_library(FREERDP_LIBRARY 
-#	NAMES MacFreeRDP-library
-#	HINTS ${CMAKE_CURRENT_BINARY_DIR}/MacFreeRDP-library.framework/MacFreeRDP-library)
 
 set(MACOSX_BUNDLE_INFO_STRING "MacFreeRDP-client")
-set(MACOSX_BUNDLE_ICON_FILE "../FreeRDP.icns")
+set(MACOSX_BUNDLE_ICON_FILE "FreeRDP.icns")
 set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.freerdp.mac")
 set(MACOSX_BUNDLE_BUNDLE_IDENTIFIER "FreeRDP-client.Mac")
 set(MACOSX_BUNDLE_LONG_VERSION_STRING "MacFreeRDP Client Version 0.1.0")
@@ -66,6 +54,10 @@ set_target_properties(${MODULE_NAME} PROPERTIES RESOURCE "${${MODULE_NAME}_RESOU
 
 # Support for automatic reference counting requires non-fragile abi.
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fobjc-nonfragile-abi")
+
+# Tell XCode where to look for the MacFreeRDP-library framework
+set_target_properties(${MODULE_NAME} PROPERTIES XCODE_ATTRIBUTE_FRAMEWORK_SEARCH_PATHS
+	"${XCODE_ATTRIBUTE_FRAMEWORK_SEARCH_PATHS} ${CMAKE_CURRENT_BINARY_DIR}/../$(CONFIGURATION)")
 
 # XCode project architecture to native architecture of build machine
 # -----------------------------------------------------------------------------------------------------
