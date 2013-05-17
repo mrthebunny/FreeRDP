@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 project(MacFreeRDP-library)
 
 set(MODULE_NAME "MacFreeRDP-library")
-set(MODULE_PREFIX "FREERDP_CLIENT_MAC")
+set(MODULE_PREFIX "FREERDP_CLIENT_MAC-LIB")
 
 set(FRAMEWORK_HEADERS_PATH /System/Library/Frameworks/Cocoa.framework/Versions/A/Headers/)
 include_directories(${FRAMEWORK_HEADERS_PATH} /System/Library/Frameworks) 
@@ -43,6 +43,21 @@ add_library(${MODULE_NAME}
 # This allows for automatic xib to nib ibitool
 # set_target_properties(${MODULE_NAME} PROPERTIES RESOURCE "${${MODULE_NAME}_RESOURCES}")
 
+# configures the framework to always be looked for in the application bundle in the Frameworks sub-folder.
+SET_TARGET_PROPERTIES( ${MODULE_NAME}  PROPERTIES
+           XCODE_ATTRIBUTE_INSTALL_PATH @executable_path/../Frameworks/  )
+          
+message(STATUS "executable output path: " ${EXECUTABLE_OUTPUT_PATH}) 
+message(STATUS "library output path: " ${LIBRARY_OUTPUT_PATH}) 
+ 
+#	SET(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}/build123")
+#	SET(LIBRARY_OUTPUT_PATH "${PROJECT_BINARY_DIR}/build123")
+   
+ set_target_properties( ${MODULE_NAME}  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${EXECUTABLE_OUTPUT_PATH} 
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE ${EXECUTABLE_OUTPUT_PATH}
+)           
+           
 # Automatic ref counting
 # temporary turn off for x86_64 build issue
 # set_target_properties(${MODULE_NAME} PROPERTIES XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES)
@@ -89,4 +104,4 @@ set_complex_link_libraries(VARIABLE ${MODULE_PREFIX}_LIBS MONOLITHIC ${MONOLITHI
 
 target_link_libraries(${MODULE_NAME} ${${MODULE_PREFIX}_LIBS})
 
-set_property(TARGET ${MODULE_NAME} PROPERTY FOLDER "Client/Mac/Lib")
+set_property(TARGET ${MODULE_NAME} PROPERTY FOLDER "Client/Mac")
