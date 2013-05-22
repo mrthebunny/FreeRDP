@@ -73,3 +73,9 @@ set_target_properties(${MODULE_NAME} PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE
 
 target_link_libraries(${MODULE_NAME} ${COCOA_LIBRARY} ${FOUNDATION_LIBRARY} ${APPKIT_LIBRARY} MacFreeRDP-library)
 set_property(TARGET ${MODULE_NAME} PROPERTY FOLDER "Client/Mac")
+
+# Embed the FreeRDP framework into the app bundle
+add_custom_command(TARGET ${MODULE_NAME} POST_BUILD
+      COMMAND mkdir ARGS -p ${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.app/Contents/Frameworks
+	  COMMAND ditto ${CMAKE_CURRENT_BINARY_DIR}/../$(CONFIGURATION)/MacFreeRDP-library.framework ${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.app/Contents/Frameworks/MacFreeRDP-library.framework
+	  )
