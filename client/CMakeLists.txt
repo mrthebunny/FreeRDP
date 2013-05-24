@@ -44,6 +44,7 @@ if(APPLE)
 	else()
 		message(STATUS "Adding Mac clients")
 		add_subdirectory(Mac)
+		add_subdirectory(Mac_old)
 	endif()
 endif()
 

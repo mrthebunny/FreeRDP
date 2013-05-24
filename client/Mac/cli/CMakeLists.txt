@@ -13,10 +13,10 @@ set(MACOSX_BUNDLE_INFO_STRING "MacFreeRDP-client")
 set(MACOSX_BUNDLE_ICON_FILE "FreeRDP.icns")
 set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.freerdp.mac")
 set(MACOSX_BUNDLE_BUNDLE_IDENTIFIER "FreeRDP-client.Mac")
-set(MACOSX_BUNDLE_LONG_VERSION_STRING "MacFreeRDP Client Version 0.1.0")
+set(MACOSX_BUNDLE_LONG_VERSION_STRING "MacFreeRDP Client Version 1.1.0")
 set(MACOSX_BUNDLE_BUNDLE_NAME "MacFreeRDP")
-set(MACOSX_BUNDLE_SHORT_VERSION_STRING 0.1.0)
-set(MACOSX_BUNDLE_BUNDLE_VERSION 0.1.0)
+set(MACOSX_BUNDLE_SHORT_VERSION_STRING 1.1.0)
+set(MACOSX_BUNDLE_BUNDLE_VERSION 1.1.0)
 set(MACOSX_BUNDLE_COPYRIGHT "Copyright 2012. All Rights Reserved.")
 
 set(MACOSX_BUNDLE_NSMAIN_NIB_FILE "MainMenu")
@@ -71,7 +71,9 @@ set_target_properties(${MODULE_NAME} PROPERTIES XCODE_ATTRIBUTE_ARCHS "$(NATIVE_
 # Set the info plist to the custom instance
 set_target_properties(${MODULE_NAME} PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/Info.plist)
 
+# Disable transitive linking
 target_link_libraries(${MODULE_NAME} ${COCOA_LIBRARY} ${FOUNDATION_LIBRARY} ${APPKIT_LIBRARY} MacFreeRDP-library)
+
 set_property(TARGET ${MODULE_NAME} PROPERTY FOLDER "Client/Mac")
 
 # Embed the FreeRDP framework into the app bundle

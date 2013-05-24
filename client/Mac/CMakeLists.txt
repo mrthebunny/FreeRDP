@@ -21,10 +21,10 @@ find_library(APPKIT_LIBRARY AppKit)
 set(MACOSX_BUNDLE_INFO_STRING "MacFreeRDP-library")
 set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.freerdp.mac")
 set(MACOSX_BUNDLE_BUNDLE_IDENTIFIER "FreeRDP-library.Mac")
-set(MACOSX_BUNDLE_LONG_VERSION_STRING "MacFreeRDP library Version 0.1")
+set(MACOSX_BUNDLE_LONG_VERSION_STRING "MacFreeRDP library Version 1.1")
 set(MACOSX_BUNDLE_BUNDLE_NAME "MacFreeRDP-library")
-set(MACOSX_BUNDLE_SHORT_VERSION_STRING 0.1.0)
-set(MACOSX_BUNDLE_BUNDLE_VERSION 0.1.0)
+set(MACOSX_BUNDLE_SHORT_VERSION_STRING 1.1.0)
+set(MACOSX_BUNDLE_BUNDLE_VERSION 1.1.0)
 set(MACOSX_BUNDLE_COPYRIGHT "Copyright 2013. All Rights Reserved.")
 
 mark_as_advanced(COCOA_LIBRARY FOUNDATION_LIBRARY APPKIT_LIBRARY)
@@ -39,8 +39,7 @@ add_library(${MODULE_NAME}
 	en.lproj/InfoPlist.strings)
 
 # configures the framework to always be looked for in the application bundle in the Frameworks sub-folder.
-SET_TARGET_PROPERTIES( ${MODULE_NAME}  PROPERTIES
-           XCODE_ATTRIBUTE_INSTALL_PATH @executable_path/../Frameworks/  )
+SET_TARGET_PROPERTIES( ${MODULE_NAME}  PROPERTIES XCODE_ATTRIBUTE_INSTALL_PATH @executable_path/../Frameworks/  )
           
 message(STATUS "executable output path: " ${EXECUTABLE_OUTPUT_PATH}) 
 message(STATUS "library output path: " ${LIBRARY_OUTPUT_PATH}) 
@@ -72,23 +71,79 @@ set_target_properties(${MODULE_NAME} PROPERTIES XCODE_ATTRIBUTE_ARCHS "$(NATIVE_
 # Set the info plist to the custom instance
 #	MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
 
-set(MODULE_VERSION, 0.1.0)
+set(MODULE_VERSION, 1.1.0)
 
 set_target_properties(${MODULE_NAME} PROPERTIES 
 	FRAMEWORK TRUE
 	MACOSX_FRAMEWORK_IDENTIFIER com.awakecoding.${MODULE_NAME}
-	FRAMEWORK_VERSION 0.1.0
-	MACOSX_FRAMEWORK_SHORT_VERSION_STRING 0.1.0
-	MACOSX_FRAMEWORK_BUNDLE_VERSION 0.1.0
+	FRAMEWORK_VERSION 1.1.0
+	MACOSX_FRAMEWORK_SHORT_VERSION_STRING 1.1.0
+	MACOSX_FRAMEWORK_BUNDLE_VERSION 1.1.0
 	PUBLIC_HEADER "MRDPView.h"
     INSTALL_NAME_DIR "@executable_path/../../Frameworks"
     MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/Info.plist
     BUILD_WITH_INSTALL_RPATH 1
 )         
 
-set(${MODULE_PREFIX}_LIBS ${${MODULE_PREFIX}_LIBS} ${EXTRA_LIBS})
+set(${MODULE_PREFIX}_LIBS ${${MODULE_PREFIX}_LIBS} ${EXTRA_LIBS} freerdp-client)
 
-set(${MODULE_PREFIX}_LIBS ${${MODULE_PREFIX}_LIBS} freerdp-client)
+# Set a list of the dependent targets used by the application. There should be a way to get this list automatically
+# from cmake, but for now I put it down manually. I got the references by calling
+# otool -L MacFreeRDP-client
+
+set(DEPENDENCIES  
+	winpr-asn1
+	winpr-heap		
+	winpr-sspi
+	winpr-bcrypt		
+	winpr-input		
+	winpr-sspicli
+	winpr-credentials	
+	winpr-interlocked	
+	winpr-synch
+	winpr-credui		
+	winpr-io		
+	winpr-sysinfo
+	winpr-crt		
+	winpr-library		
+	winpr-thread
+	winpr-crypto		
+	winpr-makecert-tool	
+	winpr-timezone
+	winpr-dsparse		
+	winpr-path		
+	winpr-utils
+	winpr-environment	
+	winpr-pipe		
+	winpr-winhttp
+	winpr-error		
+	winpr-pool		
+	winpr-winsock
+	winpr-file		
+	winpr-registry
+	winpr-handle		
+	winpr-rpc
+	freerdp-utils
+	freerdp-gdi
+	freerdp-rail
+	freerdp-cache
+	freerdp-codec
+	freerdp-primitives
+	freerdp-core
+	freerdp-crypto
+	freerdp-client
+	freerdp-locale
+	freerdp-common
+	)
+
+
+## Modify the install name path of the dependent libraries so that they can be located by the bundling app.
+# foreach(LIB ${DEPENDENCIES})
+# set_target_properties(${LIB} PROPERTIES 
+#     INSTALL_NAME_DIR "@executable_path/../Frameworks/${MODULE_NAME}.framework/Contents"
+#     BUILD_WITH_INSTALL_RPATH 1
+# )         
+# endforeach()
 
 set_complex_link_libraries(VARIABLE ${MODULE_PREFIX}_LIBS MONOLITHIC ${MONOLITHIC_BUILD}
 	MODULE freerdp
@@ -98,6 +153,33 @@ set_complex_link_libraries(VARIABLE ${MODULE_PREFIX}_LIBS MONOLITHIC ${MONOLITHI
 	MODULE winpr
 	MODULES winpr-input winpr-crt winpr-utils)
 
+set_target_properties(${MODULE_NAME} PROPERTIES LINK_INTERFACE_LIBRARIES "")
 target_link_libraries(${MODULE_NAME} ${${MODULE_PREFIX}_LIBS})
 
 set_property(TARGET ${MODULE_NAME} PROPERTY FOLDER "Client/Mac")
+
+# Add a post-build event to copy the dependent libraries in the framework bundle 
+# Call install_name_tool to reassign the library install name
+foreach(LIB ${DEPENDENCIES})
+	message("adding post-build dependency: ${LIB}")
+	add_custom_command(TARGET ${MODULE_NAME} POST_BUILD 
+  		COMMAND "${CMAKE_COMMAND}" -E copy 
+     			"$<TARGET_FILE:${LIB}>"
+     			"${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${LIB}>"
+  		COMMENT "Copying ${LIB} to output directory"
+  		COMMAND install_name_tool -change "$<TARGET_FILE:${LIB}>" "@executable_path/../Frameworks/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${LIB}>" "${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.framework/${MODULE_NAME}"
+  		COMMENT Setting install name for ${LIB}
+  		)
+endforeach()
+
+
+# Call install_name_tool to reassign the library install names in dependent libraries
+foreach(DEST ${DEPENDENCIES})
+foreach(LIB ${DEPENDENCIES})
+	message("adding post-build dependency: ${LIB}")
+	add_custom_command(TARGET ${MODULE_NAME} POST_BUILD 
+  		COMMAND install_name_tool -change "$<TARGET_FILE:${LIB}>" "@executable_path/../Frameworks/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${LIB}>" "${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${DEST}>"
+  		COMMENT Setting install name for ${LIB} in module ${DEST}
+  		)
+endforeach()
+endforeach()
