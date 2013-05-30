@@ -10,6 +10,11 @@
 #import <MacFreeRDP-library/MRDPView.h>
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
+{
+@public
+	NSWindow* window;
+	MRDPView* mrdpView;
+}
 
 @property (assign) IBOutlet NSWindow *window;
 @property (assign) IBOutlet MRDPView *mrdpView;

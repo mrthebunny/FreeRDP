@@ -8,6 +8,7 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -mmacosx-version-min
 find_library(FOUNDATION_LIBRARY Foundation)
 find_library(COCOA_LIBRARY Cocoa)
 find_library(APPKIT_LIBRARY AppKit)
+find_library(FREERDP_LIBRARY NAMES MacFreeRDP-library PATHS ${CMAKE_CURRENT_BINARY_DIR}/../${CONFIGURATION})
 
 set(MACOSX_BUNDLE_INFO_STRING "MacFreeRDP-client")
 set(MACOSX_BUNDLE_ICON_FILE "FreeRDP.icns")
@@ -28,7 +29,13 @@ set(APP_TYPE MACOSX_BUNDLE)
 # OS X Interface Builder files
 file(GLOB ${MODULE_NAME}_XIBS *.xib)
 
-set(${MODULE_NAME}_RESOURCES ${${MODULE_NAME}_XIBS} ${MACOSX_BUNDLE_ICON_FILE})
+set(${MODULE_NAME}_RESOURCES ${MACOSX_BUNDLE_ICON_FILE})
+
+# Include XIB file in Xcode resources. 
+if("${CMAKE_GENERATOR}" MATCHES "Xcode")
+	message(STATUS "Adding Xcode XIB resources for ${MODULE_NAME}")
+	set(${MODULE_NAME}_RESOURCES ${${MODULE_NAME}_RESOURCES} ${${MODULE_NAME}_XIBS})
+endif("${CMAKE_GENERATOR}" MATCHES "Xcode")
 
 # Headers
 file(GLOB ${MODULE_NAME}_HEADERS *.h)
@@ -53,11 +60,15 @@ set_target_properties(${MODULE_NAME} PROPERTIES RESOURCE "${${MODULE_NAME}_RESOU
 # set_target_properties(${MODULE_NAME} PROPERTIES XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES)
 
 # Support for automatic reference counting requires non-fragile abi.
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fobjc-nonfragile-abi")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -v -fobjc-nonfragile-abi")
+
+# Tell the compiler where to look for the FreeRDP framework
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -v -F../")
 
 # Tell XCode where to look for the MacFreeRDP-library framework
 set_target_properties(${MODULE_NAME} PROPERTIES XCODE_ATTRIBUTE_FRAMEWORK_SEARCH_PATHS
 	"${XCODE_ATTRIBUTE_FRAMEWORK_SEARCH_PATHS} ${CMAKE_CURRENT_BINARY_DIR}/../$(CONFIGURATION)")
+
 
 # XCode project architecture to native architecture of build machine
 # -----------------------------------------------------------------------------------------------------
@@ -72,6 +83,7 @@ set_target_properties(${MODULE_NAME} PROPERTIES XCODE_ATTRIBUTE_ARCHS "$(NATIVE_
 set_target_properties(${MODULE_NAME} PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/Info.plist)
 
 # Disable transitive linking
+# ${FREERDP_LIBRARY}
 target_link_libraries(${MODULE_NAME} ${COCOA_LIBRARY} ${FOUNDATION_LIBRARY} ${APPKIT_LIBRARY} MacFreeRDP-library)
 
 set_property(TARGET ${MODULE_NAME} PROPERTY FOLDER "Client/Mac")
@@ -80,4 +92,36 @@ set_property(TARGET ${MODULE_NAME} PROPERTY FOLDER "Client/Mac")
 add_custom_command(TARGET ${MODULE_NAME} POST_BUILD
       COMMAND mkdir ARGS -p ${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.app/Contents/Frameworks
 	  COMMAND ditto ${CMAKE_CURRENT_BINARY_DIR}/../$(CONFIGURATION)/MacFreeRDP-library.framework ${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.app/Contents/Frameworks/MacFreeRDP-library.framework
+  		COMMAND install_name_tool -change "@executable_path/../../Frameworks/MacFreeRDP-library.framework/Versions/1.1.0/MacFreeRDP-library" "@executable_path/../Frameworks/MacFreeRDP-library.framework/Versions/Current/MacFreeRDP-library" "${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.app/Contents/MacOS/${MODULE_NAME}"
+  		COMMENT Setting install name for MacFreeRDP-library
+
 	  )
+
+
+# Add post-build NIB file generation in unix makefiles. XCode handles this implicitly.
+if("${CMAKE_GENERATOR}" MATCHES "Unix Makefiles")
+	message(STATUS "Adding post-build NIB file generation event for ${MODULE_NAME}")
+	 
+	# Make sure we can find the 'ibtool' program. If we can NOT find it we
+	# skip generation of this project
+	find_program(IBTOOL ibtool HINTS "/usr/bin" "${OSX_DEVELOPER_ROOT}/usr/bin")
+	if (${IBTOOL} STREQUAL "IBTOOL-NOTFOUND")
+	  message(SEND_ERROR "ibtool can not be found and is needed to compile the .xib files. It should have been installed with 
+						the Apple developer tools. The default system paths were searched in addition to ${OSX_DEVELOPER_ROOT}/usr/bin")
+	endif()
+
+	# Make sure the 'Resources' Directory is correctly created before we build
+	add_custom_command (TARGET ${MODULE_NAME} PRE_BUILD
+						  COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.app/Contents/Resources)
+
+	# Compile the .xib files using the 'ibtool' program with the destination being the app package
+	foreach(xib ${${MODULE_NAME}_XIBS})
+		get_filename_component(XIB_WE ${xib} NAME_WE)
+						 
+		add_custom_command (TARGET ${MODULE_NAME} POST_BUILD 
+			COMMAND ${IBTOOL} --errors --warnings --notices --output-format human-readable-text 
+				--compile ${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.app/Contents/Resources/${XIB_WE}.nib ${xib}                     
+			COMMENT "Compiling ${xib}")
+	endforeach()
+
+endif("${CMAKE_GENERATOR}" MATCHES "Unix Makefiles")

@@ -15,9 +15,9 @@
     [super dealloc];
 }
 
-@synthesize window = _window;
+@synthesize window = window;
 
-@synthesize mrdpView;
+@synthesize mrdpView = mrdpView;
 
 - (void)applicationDidFinishLaunching:(NSNotification*)aNotification
 {

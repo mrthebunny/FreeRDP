@@ -30,23 +30,30 @@ set(MACOSX_BUNDLE_COPYRIGHT "Copyright 2013. All Rights Reserved.")
 mark_as_advanced(COCOA_LIBRARY FOUNDATION_LIBRARY APPKIT_LIBRARY)
 set(EXTRA_LIBS ${COCOA_LIBRARY} ${FOUNDATION_LIBRARY} ${APPKIT_LIBRARY})
 
+
+set(${MODULE_NAME}_RESOURCES "en.lproj/InfoPlist.strings")
+
+# OS X Interface Builder files
+file(GLOB ${MODULE_NAME}_XIBS *.xib)
+
+# Include XIB file in Xcode resources. 
+if("${CMAKE_GENERATOR}" MATCHES "Xcode")
+	message(STATUS "Adding Xcode XIB resources for ${MODULE_NAME}")
+	set(${MODULE_NAME}_RESOURCES ${${MODULE_NAME}_RESOURCES} ${${MODULE_NAME}_XIBS})
+endif("${CMAKE_GENERATOR}" MATCHES "Xcode")
+
+
 add_library(${MODULE_NAME}
 	SHARED
 	MRDPView.h
 	MRDPView.m
 	MRDPCursor.m
 	PasswordDialog.m
-	en.lproj/InfoPlist.strings)
+	${${MODULE_NAME}_RESOURCES})
 
 # configures the framework to always be looked for in the application bundle in the Frameworks sub-folder.
 SET_TARGET_PROPERTIES( ${MODULE_NAME}  PROPERTIES XCODE_ATTRIBUTE_INSTALL_PATH @executable_path/../Frameworks/  )
           
-message(STATUS "executable output path: " ${EXECUTABLE_OUTPUT_PATH}) 
-message(STATUS "library output path: " ${LIBRARY_OUTPUT_PATH}) 
- 
-#	SET(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}/build123")
-#	SET(LIBRARY_OUTPUT_PATH "${PROJECT_BINARY_DIR}/build123")
-   
  set_target_properties( ${MODULE_NAME}  PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${EXECUTABLE_OUTPUT_PATH} 
   RUNTIME_OUTPUT_DIRECTORY_RELEASE ${EXECUTABLE_OUTPUT_PATH}
@@ -161,14 +168,15 @@ set_property(TARGET ${MODULE_NAME} PROPERTY FOLDER "Client/Mac")
 # Add a post-build event to copy the dependent libraries in the framework bundle 
 # Call install_name_tool to reassign the library install name
 foreach(LIB ${DEPENDENCIES})
-	message("adding post-build dependency: ${LIB}")
+	# message("adding post-build dependency: ${LIB}")
 	add_custom_command(TARGET ${MODULE_NAME} POST_BUILD 
   		COMMAND "${CMAKE_COMMAND}" -E copy 
      			"$<TARGET_FILE:${LIB}>"
      			"${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${LIB}>"
   		COMMENT "Copying ${LIB} to output directory"
-  		COMMAND install_name_tool -change "$<TARGET_FILE:${LIB}>" "@executable_path/../Frameworks/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${LIB}>" "${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.framework/${MODULE_NAME}"
+  		COMMAND install_name_tool -change "$<TARGET_SONAME_FILE:${LIB}>" "@executable_path/../Frameworks/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${LIB}>" "${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.framework/${MODULE_NAME}"
   		COMMENT Setting install name for ${LIB}
+  		COMMAND "${CMAKE_COMMAND}" -E echo install_name_tool -change "$<TARGET_SONAME_FILE:${LIB}>" "@executable_path/../Frameworks/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${LIB}>" "${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.framework/${MODULE_NAME}"
   		)
 endforeach()
 
@@ -176,10 +184,43 @@ endforeach()
 # Call install_name_tool to reassign the library install names in dependent libraries
 foreach(DEST ${DEPENDENCIES})
 foreach(LIB ${DEPENDENCIES})
-	message("adding post-build dependency: ${LIB}")
-	add_custom_command(TARGET ${MODULE_NAME} POST_BUILD 
-  		COMMAND install_name_tool -change "$<TARGET_FILE:${LIB}>" "@executable_path/../Frameworks/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${LIB}>" "${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${DEST}>"
+	# message("adding post-build dependency: ${LIB}")
+	add_custom_command(TARGET ${MODULE_NAME} POST_BUILD
+  		COMMAND install_name_tool -change "$<TARGET_SONAME_FILE:${LIB}>" "@executable_path/../Frameworks/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${LIB}>" "${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${DEST}>"
   		COMMENT Setting install name for ${LIB} in module ${DEST}
-  		)
+)
+
+#	 	COMMAND "${CMAKE_COMMAND}" -E echo install_name_tool -change "$<TARGET_SONAME_FILE:${LIB}>" #"@executable_path/../Frameworks/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${LIB}>" #"${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.framework/Contents/$<TARGET_FILE_NAME:${DEST}>"
+#  		)
+
 endforeach()
 endforeach()
+
+
+# Add post-build NIB file generation in unix makefiles. XCode handles this implicitly.
+if("${CMAKE_GENERATOR}" MATCHES "Unix Makefiles")
+	message(STATUS "Adding post-build NIB file generation event for ${MODULE_NAME}")
+
+	# Make sure we can find the 'ibtool' program. If we can NOT find it we
+	# skip generation of this project
+	find_program(IBTOOL ibtool HINTS "/usr/bin" "${OSX_DEVELOPER_ROOT}/usr/bin")
+	if (${IBTOOL} STREQUAL "IBTOOL-NOTFOUND")
+	  message(SEND_ERROR "ibtool can not be found and is needed to compile the .xib files. It should have been installed with 
+						the Apple developer tools. The default system paths were searched in addition to ${OSX_DEVELOPER_ROOT}/usr/bin")
+	endif()
+
+	# Make sure the 'Resources' Directory is correctly created before we build
+	add_custom_command (TARGET ${MODULE_NAME} PRE_BUILD
+						  COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.app/Contents/Resources)
+
+	# Compile the .xib files using the 'ibtool' program with the destination being the app package
+	foreach(xib ${${MODULE_NAME}_XIBS})
+		get_filename_component(XIB_WE ${xib} NAME_WE)
+						 
+		add_custom_command (TARGET ${MODULE_NAME} POST_BUILD 
+			COMMAND ${IBTOOL} --errors --warnings --notices --output-format human-readable-text 
+				--compile ${CMAKE_CURRENT_BINARY_DIR}/$(CONFIGURATION)/${MODULE_NAME}.app/Contents/Resources/${XIB_WE}.nib ${xib}                     
+			COMMENT "Compiling ${xib}")
+	endforeach()
+
+endif("${CMAKE_GENERATOR}" MATCHES "Unix Makefiles")
