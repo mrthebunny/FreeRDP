@@ -460,7 +460,6 @@ static void* rdpdr_virtual_channel_client_thread(void* arg)
 		}
 	}
 
-	ExitThread(0);
 	return NULL;
 }
 

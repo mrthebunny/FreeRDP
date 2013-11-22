@@ -369,7 +369,6 @@ void* serial_thread_mfunc(void* arg)
 		}
 	}
 
-	ExitThread(0);
 	return NULL;
 }
 
@@ -406,7 +405,6 @@ static void* serial_thread_func(void* arg)
 			serial_check_fds(serial);
 	}
 
-	ExitThread(0);
 	return NULL;
 }
 

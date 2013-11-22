@@ -157,7 +157,13 @@ WINPR_API LPWSTR* CommandLineToArgvW(LPCWSTR lpCmdLine, int* pNumArgs);
 #define CREATE_SUSPENDED				0x00000004
 #define STACK_SIZE_PARAM_IS_A_RESERVATION		0x00010000
 
-WINPR_API HANDLE CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize,
+#define CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId) \
+	_CreateNamedThread(#lpStartAddress , lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId)
+
+WINPR_API HANDLE _CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize,
+	LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
+
+HANDLE _CreateNamedThread(LPCSTR lpThreadName, LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize,
 	LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
 
 WINPR_API HANDLE CreateRemoteThread(HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize,
@@ -174,6 +180,11 @@ WINPR_API DWORD SuspendThread(HANDLE hThread);
 WINPR_API BOOL SwitchToThread(void);
 
 WINPR_API BOOL TerminateThread(HANDLE hThread, DWORD dwExitCode);
+
+/* Diagnostic functions */
+WINPR_API void SetThreadName(HANDLE hThread, LPCSTR lpThreadName);
+WINPR_API LPCSTR GetThreadName(HANDLE hThread);
+
 
 /* Processor */
 

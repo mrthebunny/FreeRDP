@@ -597,7 +597,6 @@ static void* drive_thread_func(void* arg)
                 	drive_process_irp(drive, irp);
         }
 
-        ExitThread(0);
         return NULL;
 }
 

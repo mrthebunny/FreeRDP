@@ -989,7 +989,6 @@ static void* transport_client_thread(void* arg)
 	if (WaitForSingleObject(transport->stopEvent, 0) == WAIT_OBJECT_0)
 	{
 		WLog_Print(transport->log, WLOG_DEBUG, "Terminating transport thread");
-		ExitThread(0);
 		return NULL;
 	}
 
@@ -1013,7 +1012,6 @@ static void* transport_client_thread(void* arg)
 
 	WLog_Print(transport->log, WLOG_DEBUG, "Terminating transport thread");
 
-	ExitThread(0);
 	return NULL;
 }
 

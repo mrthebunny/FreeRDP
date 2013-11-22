@@ -182,8 +182,6 @@ static void* rdpei_schedule_thread(void* arg)
 		LeaveCriticalSection(&rdpei->lock);
 	}
 
-	ExitThread(0);
-
 	return NULL;
 }
 

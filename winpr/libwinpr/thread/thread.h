@@ -43,6 +43,7 @@ struct winpr_thread
 	pthread_mutex_t mutex;
 	LPTHREAD_START_ROUTINE lpStartAddress;
 	LPSECURITY_ATTRIBUTES lpThreadAttributes;
+	LPSTR pszThreadName;
 };
 typedef struct winpr_thread WINPR_THREAD;
 

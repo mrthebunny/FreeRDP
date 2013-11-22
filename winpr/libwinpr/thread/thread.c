@@ -74,6 +74,29 @@
 #include "../handle/handle.h"
 
 /**
+ * Internal thread start routine
+ */
+void winpr_StartThread_internal(void* param)
+{
+	WINPR_THREAD* thread;
+	DWORD exitCode;
+
+	thread =(WINPR_THREAD*) param;
+
+	if (thread->pszThreadName)
+		fprintf(stderr, "Thread %s started.\n", GetThreadName(thread));
+
+	exitCode = thread->lpStartAddress(thread->lpParameter);
+
+	if (thread->pszThreadName)
+		fprintf(stderr, "Thread %s stopped.\n", thread->pszThreadName);
+
+	thread->dwExitCode = exitCode;
+	thread->started = FALSE;
+	ExitThread(0);
+}
+
+/**
  * TODO: implement thread suspend/resume using pthreads
  * http://stackoverflow.com/questions/3140867/suspend-pthreads-without-using-condition
  */
@@ -89,12 +112,25 @@ void winpr_StartThread(WINPR_THREAD* thread)
 		pthread_attr_setstacksize(&attr, (size_t) thread->dwStackSize);
 
 	thread->started = TRUE;
-	pthread_create(&thread->thread, &attr, (pthread_start_routine) thread->lpStartAddress, thread->lpParameter);
+	pthread_create(&thread->thread, &attr, (pthread_start_routine) winpr_StartThread_internal, thread);
 
 	pthread_attr_destroy(&attr);
 }
 
-HANDLE CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize,
+HANDLE _CreateNamedThread(LPCSTR lpThreadName, LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize,
+	LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId)
+{
+	HANDLE thread;
+	thread = _CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags & CREATE_SUSPENDED, lpThreadId);
+	SetThreadName(thread, lpThreadName);
+
+	if (!(dwCreationFlags & CREATE_SUSPENDED))
+		winpr_StartThread(thread);
+
+	return thread;
+}
+
+HANDLE _CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize,
 	LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId)
 {
 	HANDLE handle;
@@ -211,6 +247,35 @@ BOOL TerminateThread(HANDLE hThread, DWORD dwExitCode)
 
 	return TRUE;
 }
+
+
+/* Diagnostic functions */
+void SetThreadName(HANDLE hThread, LPCSTR lpThreadName)
+{
+	ULONG Type;
+	PVOID Object;
+	WINPR_THREAD* thread;
+
+	if (!winpr_Handle_GetInfo(hThread, &Type, &Object))
+		return;
+
+	thread = (WINPR_THREAD*) Object;
+	thread->pszThreadName = _strdup(lpThreadName);
+}
+
+LPCSTR GetThreadName(HANDLE hThread)
+{
+	ULONG Type;
+	PVOID Object;
+	WINPR_THREAD* thread;
+
+	if (!winpr_Handle_GetInfo(hThread, &Type, &Object))
+		return NULL;
+
+	thread = (WINPR_THREAD*) Object;
+	return thread->pszThreadName;
+}
+
 
 #endif
 

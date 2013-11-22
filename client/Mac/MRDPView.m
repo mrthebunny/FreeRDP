@@ -236,7 +236,6 @@ DWORD mac_client_thread(void* param)
 			}
 		}
 		
-		ExitThread(0);
 		return 0;
 	}
 }
